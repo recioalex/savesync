@@ -146,9 +146,19 @@ cp runcommand /opt/retropie/configs/all/runcommand-onend.sh;
 cp runcommand $HOME/.savesync/runcommand
 
 
+cp runcommand $HOME/.savesync/rc.command
+
+nameHOME=$(echo '$HOME');
+
+sed -i -e "s#$nameHOME#$HOME#g" $HOME/.savesync/rc.command;
+
+
 sudo sed -i '/savesync/d' /etc/rc.local;
 
-sudo sed -i '$i '"$HOME"'/.savesync/runcommand' /etc/rc.local;
+sudo sed -i '$i '"$HOME"'/.savesync/rc.command' /etc/rc.local;
+
+
+
 
 
 echo "Launching first sync"
