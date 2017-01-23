@@ -1,0 +1,158 @@
+#!/bin/bash
+
+owncloudver=$(owncloudcmd -v | cut -d " " -f 3)
+
+if [ ! -e "/usr/local/bin/owncloudcmd" ]
+then
+
+
+read -p "OWNCOUD NOT FOUND, COMPLE IT FROM SOURCE? This will take a while.... y/n? " -n 1 -r
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+fi
+
+echo "**** Downloading dependencies ****"
+ocbuild/dependencies.sh;
+
+echo "**** Starting Build process ****"
+ocbuild/oc-build.sh;
+
+echo "**** Installing owncloudclient ****"
+sudo ocbuild/install.sh;
+
+fi
+
+
+while getopts l:o:u:p: opts; do
+   case ${opts} in
+      l) if [[ ${OPTARG: -1} == "/" ]];
+
+	then
+
+	location=${OPTARG:: -1};
+
+	else
+
+	location=${OPTARG};
+
+	fi
+	;;
+      o) if [[ ${OPTARG: -1} == "/" ]];
+
+        then
+
+        owncloud=${OPTARG:: -1};
+
+        else
+
+        owncloud=${OPTARG};
+
+        fi
+        ;;
+
+      u) user=${OPTARG} ;;
+      p) password=${OPTARG} ;;
+   esac
+done
+
+echo "************CAUTION************";
+
+echo "THE DIRECTORY " $owncloud "MUST BE CREATED ON THE SERVER"; 
+echo
+echo "THIS CONFIGURATION WILL OVERWRITE YOUR RUNCOMMAND-ONSTART AND ONEND";
+
+read -p "continue y/n? " -n 1 -r
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+fi
+
+
+
+
+
+mkdir $location &> /dev/null;
+mkdir $HOME/.savesync &> /dev/null;
+
+echo "Adjusting parameters";
+
+if [[ ${location: -1} == "/" ]];
+
+then
+
+$location=${location:: -1};
+
+fi
+
+if [[ ${owncloud: -1} == "/" ]];
+
+then
+
+$owncloud=${owncloud:: -1};
+
+fi
+
+
+
+echo location=$location > $HOME/.savesync/saveconfig;
+echo owncloud=$owncloud >> $HOME/.savesync/saveconfig;
+echo user=$user >> $HOME/.savesync/saveconfig;
+echo password=$password >> $HOME/.savesync/saveconfig;
+
+
+
+for d in /opt/retropie/configs/*; do
+
+system=$(echo $d | cut -d "/" -f 5)
+
+echo "configuring "$system;
+
+if [ "$system" == "all" ];
+
+then
+
+echo savefile_directory = $location;
+echo savestate_directory = $location;
+
+else
+
+touch /opt/retropie/configs/$system/retroarch.cfg;
+
+sed -i '/savefile_directory/d' /opt/retropie/configs/$system/retroarch.cfg ;
+sed -i -e "$i #savefile_directory = $location/$system &#n"  /opt/retropie/configs/$system/retroarch.cfg;
+
+sed -i '/savestate_directory/d' /opt/retropie/configs/$system/retroarch.cfg ;
+sed -i -e "$i #savestate_directory = $location/$system &#n"  /opt/retropie/configs/$system/retroarch.cfg;
+
+
+mkdir $location/$system &> /dev/null;
+
+echo savefile_directory = '"'$location/$system'/"' >> /opt/retropie/configs/$system/retroarch.cfg;
+echo savestate_directory = '"'$location/$system'/"' >> /opt/retropie/configs/$system/retroarch.cfg;
+
+fi
+
+
+done
+
+echo "creating Runcommands"
+
+cp runcommand /opt/retropie/configs/all/runcommand-onstart.sh;
+cp runcommand /opt/retropie/configs/all/runcommand-onend.sh;
+
+cp runcommand $HOME/.savesync/runcommand
+
+
+sudo sed -i '/savesync/d' /etc/rc.local;
+
+sudo sed -i '$i '"$HOME"'/.savesync/runcommand' /etc/rc.local;
+
+
+echo "Launching first sync"
+$HOME/.savesync/runcommand
+
+
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+
+location=$(cat $HOME/.savesync/saveconfig | grep location | cut -d "=" -f 2);
+owncloud=$(cat $HOME/.savesync/saveconfig | grep owncloud | cut -d "=" -f 2);
+user=$(cat $HOME/.savesync/saveconfig | grep user | cut -d "=" -f 2);
+password=$(cat $HOME/.savesync/saveconfig | grep password | cut -d "=" -f 2);
+
+owncloudcmd -s -u $user -p $password $location/$1 $owncloud/$1
